@@ -118,12 +118,12 @@ End As sls_ship_dt,
 CASE When sls_due_dt = 0 or LEN(sls_due_dt) != 8 Then NULL
 Else CAST(CAST(sls_due_dt As Varchar) As Date) 
 End As sls_due_dt,
-CASE When sls_sales IS NOT NULL Or sls_sales <= 0 OR sls_sales != sls_quantity * ABS(sls_price)
+CASE When sls_sales IS NULL Or sls_sales <= 0 OR sls_sales != sls_quantity * ABS(sls_price)
 Then sls_quantity * ABS(sls_price)
 ELSE sls_sales
 END sls_sales,
 sls_quantity,
-CASE When sls_price Is Not Null Or sls_price <= 0
+CASE When sls_price Is Null Or sls_price <= 0
 Then sls_sales / NULLIF(sls_quantity,0) 
 Else sls_price
 END As sls_price
