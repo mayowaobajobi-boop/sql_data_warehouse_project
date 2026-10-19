@@ -1,11 +1,9 @@
 
-EXEC silver.load_silver
-
-
 CREATE OR ALTER PROCEDURE silver.load_silver AS
 BEGIN
-
+Declare @Start_time DATETime, @End_time DATETIME, @Batch_Start_time DATETIME, @Batch_end_Time DATETIME; 
 Begin try
+	Set @Batch_Start_Time = GetDate();
 PRINT '============================================================   ';
 PRINT 'LOADING SILVER LAYER';
 PRINT '============================================================   ';
@@ -14,6 +12,8 @@ PRINT '---------------------------------------------------------------';
 PRINT 'LOADING CRM TABLES';
 PRINT '---------------------------------------------------------------';
 
+----Loading silver.crm_Cust_Info
+set @Start_Time = GetDate();
 Print'>> Truncating the table:Insert Into silver.crm_Cust_Info'
 Truncate Table silver.crm_Cust_Info;
 Print'>>Inserting Data into: silver.crm_Cust_Info'
@@ -43,12 +43,16 @@ From (
 Select *,
 Row_number() Over( partition By Cst_Id Order By Cst_create_date DESC) as Flag_last
 From bronze.crm_cust_info Where cst_id  Is Not Null) t
-Where Flag_last = 1
+Where Flag_last = 1;
+SET @end_Time = GETDATE();
+PRINT' >> Loading Duration:' + CAST(DATEDIFF(SECOND, @Start_Time, @End_Time) As NVARCHAR) + 'Seconds';
+PRINT '>>======================================='
 
 
 
 
-
+----loading silver.crm_prd_Info
+SET @Start_Time = GETDATE();
 Print'>> Truncating the table:silver.crm_prd_Info'
 Truncate Table silver.crm_prd_Info;
 Print'>>Inserting Data into:silver.crm_prd_Info'
@@ -77,11 +81,16 @@ CASE UPPER(TRIM(prd_line))
 	End As prd_line,
 CAST(prd_start_dt As Date) As prd_start_dt,
 CAST(LEAD(prd_start_dt) Over( partition By prd_key Order By prd_start_dt)-1 As Date ) As prd_end_dt
-from bronze.crm_prd_Info
+from bronze.crm_prd_Info;
+SET @end_Time = GETDATE();
+PRINT' >> Loading Duration:' + CAST(DATEDIFF(SECOND, @Start_Time, @End_Time) As NVARCHAR) + 'Seconds';
+PRINT '>>======================================='
 
 
 
 
+----Loading silver.crm_sls_details
+SET @Start_Time = GETDATE();
 Print'>> Truncating the table:silver.crm_sls_details'
 Truncate Table silver.crm_sls_details;
 Print'>>Inserting Data into:silver.crm_sls_details'
@@ -109,22 +118,28 @@ End As sls_ship_dt,
 CASE When sls_due_dt = 0 or LEN(sls_due_dt) != 8 Then NULL
 Else CAST(CAST(sls_due_dt As Varchar) As Date) 
 End As sls_due_dt,
-CASE When sls_sales IS NOT NULL Or sls_sales <= 0 OR sls_sales != sls_quantity* ABS(sls_price)
+CASE When sls_sales IS NOT NULL Or sls_sales <= 0 OR sls_sales != sls_quantity * ABS(sls_price)
 Then sls_quantity * ABS(sls_price)
+ELSE sls_sales
 END sls_sales,
 sls_quantity,
 CASE When sls_price Is Not Null Or sls_price <= 0
 Then sls_sales / NULLIF(sls_quantity,0) 
 Else sls_price
 END As sls_price
-From bronze.crm_sls_details
+From bronze.crm_sls_details;
+SET @end_Time = GETDATE();
+PRINT' >> Loading Duration:' + CAST(DATEDIFF(SECOND, @Start_Time, @End_Time) As NVARCHAR) + 'Seconds';
+PRINT '>>======================================='
+
 
 
 PRINT '---------------------------------------------------------------';
 PRINT 'LOADING ERP TABLES';
 PRINT '---------------------------------------------------------------';
 
-
+--- Loading silver.erp_cust_az12
+SET @START_TIME = GETDATE();
 Print'>> Truncating the table:silver.erp_cust_az12'
 Truncate Table silver.erp_cust_az12;
 Print'>>Inserting Data into:silver.erp_cust_az12'
@@ -144,11 +159,15 @@ CASE When UPPER(TRIM(gen)) IN ('F', 'FEMALE') Then 'Female'
 	When UPPER(TRIM(gen)) IN ('M', 'MALE') Then 'Male'
 	Else 'n/a'
 End gen
-from bronze.erp_cust_az12
+from bronze.erp_cust_az12;
+SET @end_Time = GETDATE();
+PRINT' >> Loading Duration:' + CAST(DATEDIFF(SECOND, @Start_Time, @End_Time) As NVARCHAR) + 'Seconds';
+PRINT '>>======================================='
 
 
 
-
+----Loading silver.erp_loc_a101
+SET @START_TIME = GETDATE();
 Print'>> Truncating the table:silver.erp_loc_a101'
 Truncate Table silver.erp_loc_a101;
 Print'>>Inserting Data into:silver.erp_loc_a101'
@@ -163,11 +182,16 @@ CASE When TRIM(cntry) = 'DE' Then 'Germany'
 	When TRIM(cntry) = '' OR cntry IS NULL Then 'n/a'
 	Else Trim(cntry)
 End cntry
-From bronze.erp_loc_a101
+From bronze.erp_loc_a101;
+SET @end_Time = GETDATE();
+PRINT' >> Loading Duration:' + CAST(DATEDIFF(SECOND, @Start_Time, @End_Time) As NVARCHAR) + 'Seconds';
+PRINT '>>======================================='
 
 
 
 
+---loading silver.erp_px_cat_g1v2
+SET @Start_Time = GETDATE();
 Print'>> Truncating the table:silver.erp_px_cat_g1v2'
 Truncate Table silver.erp_px_cat_g1v2;
 Print'>>Inserting Data into:silver.erp_px_cat_g1v2'
@@ -182,12 +206,25 @@ id,
 cat,
 subcat,
 maintenance
-from bronze.erp_px_cat_g1v2
+from bronze.erp_px_cat_g1v2;
+
+SET @end_Time = GETDATE();
+PRINT' >> Loading Duration:' + CAST(DATEDIFF(SECOND, @Start_Time, @End_Time) As NVARCHAR) + 'Seconds';
+PRINT '>>======================================='
+
+
+
+SET @Batch_End_Time = GETDATE();
+PRINT'=================================================='
+PRINT'Loading silver layer is completed';
+PRINT' - Total Load Duration:' + CAST(DATEDIFF(SECOND, @Batch_Start_Time, @Batch_End_Time) As NVARCHAR) + 'Seconds';
+PRINT '============================================================'
+
 
 End Try
 Begin Catch
 PRINT'=============================================================================='
-PRINT'ERROR OCCUR DURING LOADING BRONZE LAYER'
+PRINT'ERROR OCCUR DURING LOADING SILVER LAYER'
 PRINT'ERROR MESSAGE' + ERROR_MESSAGE();
 PRINT'ERROR MESSAGE' + CAST(ERROR_NUMBER() AS NVARCHAR);
 PRINT'ERROR MESSAGE' + CAST(ERROR_STATE() AS NVARCHAR);
