@@ -102,3 +102,5 @@ data-warehouse-project/
 ├── .gitignore                          # Files and directories to be ignored by Git
 └── requirements.txt                    # Dependencies and requirements for the project
 ```
+About Me
+I manage relational and dimensional databases, and build data models that support enterprise reporting, clean, validate, and enrich data to ensure consistency. I build Power BI and Tableau dashboards, maintain analytics layers, and support teams with trend analysis, cohort analysis, segmentation, funnel performance, and root cause analysis and investigations. I write SQL scripts and stored procedures, automate reporting tasks, and run exploratory data analysis using SQL. I document findings for managers and senior leaders and provide technical support on reporting systems.
